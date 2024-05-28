@@ -1,5 +1,7 @@
 package Controller;
 
+import java.util.List;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -35,6 +37,10 @@ public class SocialMediaController {
         Javalin app = Javalin.create();
         app.post("register", this::registerHandler);
         app.post("login", this::loginHandler);
+        app.post("messages", this::createMessageHandler);
+        app.get("messages", this::getAllMessagesHandler);
+        app.get("messages/{message_id}", this::getMessageByIdHandler);
+        app.patch("messages/{message_id}", this::updateMessageHandler);
 
         return app;
     }
@@ -86,6 +92,58 @@ public class SocialMediaController {
         } else {
             context.status(401);
         }
+    }
+
+    /**
+     * Handler to post a message
+     * The Message text must be between 1 and 255 characters long and the account specified by posted_by must exist.
+     * If MessageService returns a null message (meaning posting an Message was unsuccessful), the API will return a 400
+     * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
+     *            be available to this method automatically thanks to the app.post method.
+     * @throws JsonProcessingException will be thrown if there is an issue converting JSON into an object.
+     */
+    private void createMessageHandler(Context context) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Message message = mapper.readValue(context.body(), Message.class);
+        
+        boolean isMessageTextValid = message.getMessage_text().length() > 0 && message.getMessage_text().length() <= 255;
+        boolean userExists = accountService.getAccountById(message.getPosted_by()) != null;
+        
+        if (isMessageTextValid && userExists) {
+            Message addedMessage = messageService.createMessage(message);
+            if (addedMessage != null) {
+                context.json(mapper.writeValueAsString(addedMessage));
+                context.status(200);
+            } else {
+                context.status(400);
+            }
+        } else {
+            context.status(400);
+        }
+    }
+
+    /**
+     * Handler to retrieve all messages
+     * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
+     *            be available to this method automatically thanks to the app.post method.
+     */
+    private void getAllMessagesHandler(Context context) {
+        List<Message> messages = messageService.getAllMessages();
+        context.json(messages);
+    }
+
+    /**
+     * Hander to retrieve a message by a specified id
+     * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
+     *            be available to this method automatically thanks to the app.post method.
+     */
+    private void getMessageByIdHandler(Context context) {
+        Message message = messageService.getMessageById(Integer.valueOf(context.pathParam("message_id")));
+        context.json(message);
+    }
+
+    private void updateMessageHandler() {
+        
     }
 
 
