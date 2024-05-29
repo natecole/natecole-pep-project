@@ -45,13 +45,13 @@ public class AccountService {
     }
 
     /**
-     * Searches the account table for an account with the same credentials as the passed account
+     * Retrieves an account from the account table with the same credentials as the passed account
      * 
      * @param account
-     * @return True if there is an account with the same credentials, false otherwise;
+     * @return The account if there is an account with the same credentials, null otherwise;
      */
-    public boolean doesAccountExist(Account account) {
-        return accountDAO.getAccount(account) != null;
+    public Account getAccountByCredentials(Account account) {
+        return accountDAO.getAccount(account);
     }
 
     public Account getAccountById(int id) {

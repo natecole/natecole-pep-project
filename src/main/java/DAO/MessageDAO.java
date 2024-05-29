@@ -96,13 +96,19 @@ public class MessageDAO {
         return null;
     }
 
+    /**
+     * Deletes a message from the message table given an id
+     * 
+     * @param id
+     * @return The message deleted if successful, null otherwise
+     */
     public Message deleteMessage(int id) {
         Connection connection = ConnectionUtil.getConnection();
         Message message = null;
         try {
             connection.setAutoCommit(false);
 
-            String selectSQL = "SELECT * FROM messages WHERE id = ?";
+            String selectSQL = "SELECT * FROM message WHERE message_id = ?";
             PreparedStatement selectStmt = connection.prepareStatement(selectSQL);
 
             selectStmt.setInt(1, id);
@@ -123,14 +129,30 @@ public class MessageDAO {
                 deleteStmt.setInt(1, id);
 
                 deleteStmt.executeUpdate();
+                connection.commit();
                 return message;
             }
         }catch(SQLException e){
-            System.out.println(e.getMessage());
+            if (connection != null) {
+                try {
+                    connection.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
         }
         return null;
     }
 
+    /**
+     * Updates a message in the message table given an id and replacement text
+     * the text is assumed to be valid
+     * 
+     * @param id
+     * @param text
+     * @return The message with the new text if successful, null otherwise
+     */
     public Message updateMessage(int id, String text) {
         Connection connection = ConnectionUtil.getConnection();
         try {
@@ -144,8 +166,9 @@ public class MessageDAO {
             updateStmt.setInt(2, id);
 
             updateStmt.executeUpdate();
+            connection.commit();
 
-            String selectSQL = "SELECT * FROM messages WHERE id = ?";
+            String selectSQL = "SELECT * FROM message WHERE message_id = ?";
             PreparedStatement selectStmt = connection.prepareStatement(selectSQL);
 
             selectStmt.setInt(1, id);
@@ -158,11 +181,24 @@ public class MessageDAO {
                             rs.getLong("time_posted_epoch"));
             }
         }catch(SQLException e){
-            System.out.println(e.getMessage());
+            if (connection != null) {
+                try {
+                    connection.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
         }
         return null;
     }
 
+    /**
+     * Retrieves all messages for an account given the account's id.
+     * The account id should match the message's "posted_by" attribute
+     * @param id
+     * @return A list of all messages posted by the account
+     */
     public List<Message> getAllMessagesByUser(int id) {
         Connection connection = ConnectionUtil.getConnection();
         List<Message> messages = new ArrayList<>();

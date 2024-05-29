@@ -91,9 +91,10 @@ public class SocialMediaController {
     private void loginHandler(Context context) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Account account = mapper.readValue(context.body(), Account.class);
+        Account matchedAccount = accountService.getAccountByCredentials(account);
         
-        if (accountService.doesAccountExist(account)) {
-            context.status(200);
+        if (matchedAccount != null) {
+            context.json(matchedAccount);
         } else {
             context.status(401);
         }
@@ -138,21 +139,42 @@ public class SocialMediaController {
     }
 
     /**
-     * Hander to retrieve a message by a specified id
+     * Handler to retrieve a message by a specified id
      * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
      *            be available to this method automatically thanks to the app.post method.
      */
     private void getMessageByIdHandler(Context context) {
         Message message = messageService.getMessageById(Integer.valueOf(context.pathParam("message_id")));
-        context.json(message);
+        if (message != null) {
+            context.json(message);
+        } else {
+            context.status(200);
+        }
     }
 
+    /**
+     * Handler to delete a message by id
+     * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
+     *            be available to this method automatically thanks to the app.post method.
+     */
     private void deleteMessageHandler(Context context) {
         int messageId = Integer.valueOf(context.pathParam("message_id"));
         Message message = messageService.deleteMessage(messageId);
-        context.json(message);
+        if (message != null) {
+            context.json(message);
+        } else {
+            context.status(200);
+        }
     }
 
+    /**
+     * Handler to update message
+     * New message text must be 1 to 255 characters in length and the message being updated must
+     * be in the database already
+     * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
+     *            be available to this method automatically thanks to the app.post method.
+     * @throws JsonProcessingException will be thrown if there is an issue converting JSON into an object.
+     */
     private void updateMessageHandler(Context context) throws JsonProcessingException {
         int messageId = Integer.valueOf(context.pathParam("message_id"));
 
@@ -171,6 +193,11 @@ public class SocialMediaController {
         }
     }
 
+    /**
+     * Handler to get all users for an account
+     * @param context The context object handles information HTTP requests and generates responses within Javalin. It will
+     *            be available to this method automatically thanks to the app.post method.
+     */
     private void getAllMessagesByUserHandler(Context context) {
         int accountId = Integer.valueOf(context.pathParam("account_id"));
         List<Message> messages = messageService.getAllMessagesByUser(accountId);
