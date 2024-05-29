@@ -48,4 +48,20 @@ public class MessageService {
     public Message getMessageById(int id) {
         return messageDAO.getMessageById(id);
     }
+
+    public boolean doesMessageExist(int id) {
+        return messageDAO.getMessageById(id) != null;
+    }
+
+    public Message deleteMessage(int id) {
+        return messageDAO.deleteMessage(id);
+    }
+
+    public Message updateMessage(int id, String text) {
+        return messageDAO.updateMessage(id, text);
+    }
+
+    public List<Message> getAllMessagesByUser(int id) {
+        return messageDAO.getAllMessagesByUser(id);
+    }
 }

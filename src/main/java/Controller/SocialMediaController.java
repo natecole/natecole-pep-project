@@ -1,8 +1,11 @@
 package Controller;
 
+import static org.mockito.ArgumentMatchers.contains;
+
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import Model.Account;
@@ -40,7 +43,9 @@ public class SocialMediaController {
         app.post("messages", this::createMessageHandler);
         app.get("messages", this::getAllMessagesHandler);
         app.get("messages/{message_id}", this::getMessageByIdHandler);
+        app.delete("messages/{message_id}", this::deleteMessageHandler);
         app.patch("messages/{message_id}", this::updateMessageHandler);
+        app.get("accounts/{account_id}/messages", this::getAllMessagesByUserHandler);
 
         return app;
     }
@@ -58,11 +63,11 @@ public class SocialMediaController {
         ObjectMapper mapper = new ObjectMapper();
         Account account = mapper.readValue(context.body(), Account.class);
         
-        boolean isUsernameValid = account.getUsername().length() != 0;
-        boolean isPasswordValid = account.getPassword().length() >= 4;
+        boolean usernameValid = account.getUsername().length() != 0;
+        boolean passwordValid = account.getPassword().length() >= 4;
         boolean usernameExists = accountService.doesUsernameExist(account.getUsername());
         
-        if (isUsernameValid && isPasswordValid && !usernameExists) {
+        if (usernameValid && passwordValid && !usernameExists) {
             Account addedAccount = accountService.createAccount(account);
             if (addedAccount != null) {
                 context.json(mapper.writeValueAsString(addedAccount));
@@ -106,10 +111,10 @@ public class SocialMediaController {
         ObjectMapper mapper = new ObjectMapper();
         Message message = mapper.readValue(context.body(), Message.class);
         
-        boolean isMessageTextValid = message.getMessage_text().length() > 0 && message.getMessage_text().length() <= 255;
+        boolean messageTextValid = message.getMessage_text().length() > 0 && message.getMessage_text().length() <= 255;
         boolean userExists = accountService.getAccountById(message.getPosted_by()) != null;
         
-        if (isMessageTextValid && userExists) {
+        if (messageTextValid && userExists) {
             Message addedMessage = messageService.createMessage(message);
             if (addedMessage != null) {
                 context.json(mapper.writeValueAsString(addedMessage));
@@ -142,8 +147,34 @@ public class SocialMediaController {
         context.json(message);
     }
 
-    private void updateMessageHandler() {
-        
+    private void deleteMessageHandler(Context context) {
+        int messageId = Integer.valueOf(context.pathParam("message_id"));
+        Message message = messageService.deleteMessage(messageId);
+        context.json(message);
+    }
+
+    private void updateMessageHandler(Context context) throws JsonProcessingException {
+        int messageId = Integer.valueOf(context.pathParam("message_id"));
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(context.body());
+        String messageText = rootNode.get("message_text").asText();
+
+        boolean messageTextValid = messageText.length() > 0 && messageText.length() <= 255;
+        boolean messageExists = messageService.doesMessageExist(messageId);
+
+        if(messageTextValid && messageExists) {
+            Message updatedMessage = messageService.updateMessage(messageId, messageText);
+            context.json(updatedMessage);
+        } else {
+            context.status(400);
+        }
+    }
+
+    private void getAllMessagesByUserHandler(Context context) {
+        int accountId = Integer.valueOf(context.pathParam("account_id"));
+        List<Message> messages = messageService.getAllMessagesByUser(accountId);
+        context.json(messages);
     }
 
 
